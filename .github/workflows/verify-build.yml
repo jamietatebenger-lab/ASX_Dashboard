@@ -1,0 +1,36 @@
+name: Verify ASX Dashboard build
+on:
+  push:
+    branches: [main, ci-smoke-asx-2026-10-23]
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'package*.json'
+      - 'tsconfig.json'
+      - '.github/workflows/verify-build.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+      - name: Python source syntax
+        run: |
+          python -m py_compile base_rates.py build_history.py calibration.py \
+            fetch_asx.py fetch_msg.py market_context.py reflect.py verify_sentiment.py
